@@ -1,6 +1,17 @@
 # serverless-measurement-doc
 Documentation for Serverless Setup and Measurement
 
+## Table of contents
+- [Setting up a product ready Kubernetes cluster](#setting-up-a-product-ready-kubernetes-cluster)
+- [Setting up a serverless cluster](#setting-up-a-serverless-cluster)
+  - [Prerequisite](#prerequisite)
+  - [Installing Knative Serving using YAML files](#installing-knative-serving-using-yaml-files)
+    - [Install the Knative Serving component](#1-install-the-knative-serving-component)
+    - [Install a networking layer](#2-install-a-networking-layer)
+    - [Verify the installation](#3-verify-the-installation)
+    - [Configure DNS](#4-configure-dns)
+
+
 ## Setting up a product ready Kubernetes cluster
 You can follow [this guild](https://github.com/kenphunggg/kubespray.git) to build your own K8s cluster using `Kubespray`
 
@@ -10,7 +21,6 @@ In this testbed, we're using [Knative](https://knative.dev/docs/) for building a
 ### Prerequisite
 It is recommended to using [Metallb](https://metallb.io/) to expose a IPV4 address for cluster's `Loadbalancer` Service
 
-#### 1. Preparation
 If you’re using kube-proxy in IPVS mode, since Kubernetes v1.14.2 you have to enable strict ARP mode.
 
 You can achieve this by editing kube-proxy config in current cluster:
@@ -27,12 +37,12 @@ sed -e "s/strictARP: false/strictARP: true/" | \
 kubectl apply -f - -n kube-system
 ```
 
-#### 2. Installation by manifest
+Installation by manifest
+
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
 ```
 
-#### 3. Configuration
 In order to assign an IP to the services, MetalLB must be instructed to do so via the `IPAddressPool` CR.
 
 All the IPs allocated via `IPAddressPools` contribute to the pool of IPs that MetalLB uses to assign IPs to services.
@@ -45,7 +55,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - <Your ipaddresspool>  # Example: 192.168.122.1-192.168.122.250
+  - <your_ipAddresspool>  # Example: 192.168.17.1-192.168.17.250
 ```
 
 ### Installing Knative Serving using YAML files
