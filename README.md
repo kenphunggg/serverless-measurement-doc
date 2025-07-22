@@ -10,6 +10,7 @@ Documentation for Serverless Setup and Measurement
     - [Install a networking layer](#2-install-a-networking-layer)
     - [Verify the installation](#3-verify-the-installation)
     - [Configure DNS](#4-configure-dns)
+  - [Advance configuration](#advance-configuration)
 
 
 ## Setting up a product ready Kubernetes cluster
@@ -47,7 +48,7 @@ In order to assign an IP to the services, MetalLB must be instructed to do so vi
 
 All the IPs allocated via `IPAddressPools` contribute to the pool of IPs that MetalLB uses to assign IPs to services.
 
-```shell
+```yaml
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -120,7 +121,7 @@ Knative provides a Kubernetes Job called default-domain that configures Knative 
 kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1.18.1/serving-default-domain.yaml
 ```
 
-
+### Advance configuration
 
 
 
