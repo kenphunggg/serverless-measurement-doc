@@ -2,6 +2,8 @@
 Documentation for Serverless Setup and Measurement
 
 ## Table of contents
+
+- [Testbed design](#testbed-design)
 - [Setting up a product ready Kubernetes cluster](#setting-up-a-product-ready-kubernetes-cluster)
 - [Setting up a serverless cluster](#setting-up-a-serverless-cluster)
   - [Prerequisite](#prerequisite)
@@ -18,6 +20,9 @@ Documentation for Serverless Setup and Measurement
   - [Install Prometheus](#install-prometheus)
   - [Running Prometheus](#running-prometheus)
 
+## Testbed design
+
+![testbed design](./images/testbed_des.png)
 
 ## Setting up a product ready Kubernetes cluster
 You can follow [this guild](https://github.com/kenphunggg/kubespray.git) to build your own K8s cluster using `Kubespray`
