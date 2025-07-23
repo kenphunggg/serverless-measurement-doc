@@ -16,6 +16,7 @@ Documentation for Serverless Setup and Measurement
     - [Kourier Gateway](#kourier-gateway)
     - [Activator](#activator)
     - [Check your configuration](#check-your-configuration)
+- [Network configuration](#network-configuration)
 - [Setting up Prometheus for measuring](#setting-up-prometheus-for-measuring)
   - [Install Prometheus](#install-prometheus)
   - [Running Prometheus](#running-prometheus)
@@ -23,6 +24,8 @@ Documentation for Serverless Setup and Measurement
 ## Testbed design
 
 ![testbed design](./images/testbed_des.png)
+
+In this testbed, we build up three nodes which is `master-node`, and two worker nodes (`cloud-node` and `edge-node`). `mater-node` will be the `control-plane` for `Kubernetes` cluster. It will generate requests and the measurement will be run right there. We will emulate latency and bandwidth between `master-node` and two other worker nodes. Functions will be served in two worker nodes and we will run `Prometheus` server in these nodes for measurement.
 
 ## Setting up a product ready Kubernetes cluster
 You can follow [this guild](https://github.com/kenphunggg/kubespray.git) to build your own K8s cluster using `Kubespray`
@@ -176,6 +179,10 @@ NAME                                      READY   STATUS    RESTARTS   AGE     I
 > [!IMPORTANT]
 > Make sure your cluster have exactly one activator and one gateway each node
 
+## Network configuration
+
+In this work, we use [traffic-control](https://github.com/kenphunggg/traffic-control.git) for emulating latency and bandwidth between nodes.
+
 ## Setting up Prometheus for measuring
 
 ### Install Prometheus
@@ -248,6 +255,9 @@ Now we can run the `Prometheus` Server
 prometheus --config.file "/etc/prometheus/prometheus.yml"
 ```
 
+## Measurement
+
+Follow our our guild for measuring [here](https://github.com/kenphunggg/serverless-measurement.git)
 
 
 
