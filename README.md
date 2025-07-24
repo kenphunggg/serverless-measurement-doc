@@ -230,8 +230,10 @@ Then extract it
 
 ```shell
 tar xvfz prometheus-*.tar.gz
+tar xvf tar xvfz node_exporter-1.9.1.linux-amd64.tar.gz
 sudo mv prometheus-3.5.0.linux-amd64/promtool /usr/local/bin/
 sudo mv prometheus-3.5.0.linux-amd64/prometheus /usr/local/bin/
+sudo mv node_exporter-1.9.1.linux-amd64 /usr/local/bin/
 ```
 
 The Prometheus configuration is written in the YAML file, its default configuration is in the folder `prometheus-3.5.0.linux-amd64` with the name `prometheus.yml` we unzipped it above, let's take a look at it.
