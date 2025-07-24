@@ -257,7 +257,7 @@ prometheus --config.file "/etc/prometheus/prometheus.yml"
 
 ## Measurement
 
-Follow our our guild for measuring [here](https://github.com/kenphunggg/netem.git)
+Follow our our guild for measuring [here](git@github.com:kenphunggg/serverless-measurement.git)
 
 
 
