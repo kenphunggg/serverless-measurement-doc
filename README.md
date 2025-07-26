@@ -157,6 +157,21 @@ kubectl -n knative-serving patch deploy activator --patch '{"spec":{"replicas":3
 kubectl -n knative-serving patch deploy activator --patch '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"In","values":["master-node", "cloud-node", "edge-node"]}]}]}}}}}}}'
 ```
 
+#### Config-map
+
+```shell
+kubectl patch configmap config-features \
+  -n knative-serving \
+  --type merge \
+  -p '{"data":{"kubernetes.podspec-nodeselector":"enabled"}}'
+
+kubectl patch configmap config-features \
+  -n knative-serving \
+  --type merge \
+  -p '{"data":{"kubernetes.podspec-fieldref":"enabled"}}' 
+
+```
+
 #### Check your configuration
 
 ```shell
@@ -230,10 +245,10 @@ Then extract it
 
 ```shell
 tar xvfz prometheus-*.tar.gz
-tar xvf tar xvfz node_exporter-1.9.1.linux-amd64.tar.gz
+tar xvf node_exporter-1.9.1.linux-amd64.tar.gz
 sudo mv prometheus-3.5.0.linux-amd64/promtool /usr/local/bin/
 sudo mv prometheus-3.5.0.linux-amd64/prometheus /usr/local/bin/
-sudo mv node_exporter-1.9.1.linux-amd64 /usr/local/bin/
+sudo mv node_exporter-1.9.1.linux-amd64/node_exporter /usr/local/bin
 ```
 
 The Prometheus configuration is written in the YAML file, its default configuration is in the folder `prometheus-3.5.0.linux-amd64` with the name `prometheus.yml` we unzipped it above, let's take a look at it.
@@ -249,6 +264,12 @@ We will now run Prometheus, but before that, we should move the configuration fi
 ```shell
 sudo mkdir -p /etc/prometheus
 sudo mv prometheus-3.5.0.linux-amd64/prometheus.yml /etc/prometheus
+```
+
+Run Prometheus Exporter
+
+```shell
+node_exporter
 ```
 
 Now we can run the `Prometheus` Server
