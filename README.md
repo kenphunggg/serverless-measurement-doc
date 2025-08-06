@@ -141,8 +141,8 @@ kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1
 
 ```shell
 # replicate 3scale-gateway pod to 3 replicas
-kubectl -n kourier-system patch deploy 3scale-kourier-gateway --patch '{"spec":{"replicas":3}}'
-kubectl -n kourier-system patch deploy 3scale-kourier-gateway --patch '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"In","values":["master-node", "cloud-node", "edge-node"]}]}]}}}}}}}'
+kubectl -n kourier-system patch deploy 3scale-kourier-gateway --patch '{"spec":{"replicas":1}}'
+kubectl -n kourier-system patch deploy 3scale-kourier-gateway --patch '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"In","values":["master-node"]}]}]}}}}}}}'
 
 # use local gateway for every request
 kubectl -n kourier-system patch service kourier --patch '{"spec":{"internalTrafficPolicy":"Local","externalTrafficPolicy":"Local"}}'
@@ -153,8 +153,8 @@ kubectl -n kourier-system patch service kourier-internal --patch '{"spec":{"inte
 
 ```shell
 # replicate activator pod to 3 replicas
-kubectl -n knative-serving patch deploy activator --patch '{"spec":{"replicas":3}}'
-kubectl -n knative-serving patch deploy activator --patch '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"In","values":["master-node", "cloud-node", "edge-node"]}]}]}}}}}}}'
+kubectl -n knative-serving patch deploy activator --patch '{"spec":{"replicas":1}}'
+kubectl -n knative-serving patch deploy activator --patch '{"spec":{"template":{"spec":{"affinity":{"nodeAffinity":{"requiredDuringSchedulingIgnoredDuringExecution":{"nodeSelectorTerms":[{"matchExpressions":[{"key":"kubernetes.io/hostname","operator":"In","values":["master-node"]}]}]}}}}}}}'
 ```
 
 #### Config-map
@@ -178,16 +178,12 @@ kubectl patch configmap config-features \
 thai@master-node ~/ken/serverless-measurement-doc
  $ kubectl -n knative-serving get pod -o wide | grep activator
 activator-6f5448b646-9sfzp                1/1     Running     0          4m15s   10.233.113.141   master-node   <none>           <none>
-activator-6f5448b646-bkw8m                1/1     Running     0          3m55s   10.233.77.68     edge-node     <none>           <none>
-activator-6f5448b646-gdf8h                1/1     Running     0          4m17s   10.233.99.12     cloud-node    <none>           <none>
 ```
 
 ```shell
 thai@master-node ~/ken/serverless-measurement-doc
  $ kubectl -n kourier-system get pod -o wide
 NAME                                      READY   STATUS    RESTARTS   AGE     IP               NODE          NOMINATED NODE   READINESS GATES
-3scale-kourier-gateway-5886fc6dbd-4tsbz   1/1     Running   0          8m31s   10.233.99.11     cloud-node    <none>           <none>
-3scale-kourier-gateway-5886fc6dbd-kq77k   1/1     Running   0          8m31s   10.233.77.66     edge-node     <none>           <none>
 3scale-kourier-gateway-5886fc6dbd-tcf8v   1/1     Running   0          8m31s   10.233.113.139   master-node   <none>           <none>
 ```
 
