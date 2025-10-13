@@ -6,12 +6,10 @@ Documentation for Serverless Setup and Measurement
 - [Testbed design](#testbed-design)
 - [Setting up a product ready Kubernetes cluster](#setting-up-a-product-ready-kubernetes-cluster)
 - [Setting up a serverless cluster](#setting-up-a-serverless-cluster)
-  - [Prerequisite](#prerequisite)
   - [Installing Knative Serving using YAML files](#installing-knative-serving-using-yaml-files)
     - [Install the Knative Serving component](#1-install-the-knative-serving-component)
     - [Install a networking layer](#2-install-a-networking-layer)
     - [Verify the installation](#3-verify-the-installation)
-    - [Configure DNS](#4-configure-dns)
   - [Advance configuration](#advance-configuration)
     - [Kourier Gateway](#kourier-gateway)
     - [Activator](#activator)
@@ -32,46 +30,6 @@ You can follow [this guild](https://github.com/kenphunggg/kubespray.git) to buil
 
 ## Setting up a serverless cluster
 In this testbed, we're using [Knative](https://knative.dev/docs/) for building a `Serverless cluster`
-
-### Prerequisite
-It is recommended to using [Metallb](https://metallb.io/) to expose a IPV4 address for cluster's `Loadbalancer` Service
-
-If you’re using kube-proxy in IPVS mode, since Kubernetes v1.14.2 you have to enable strict ARP mode.
-
-You can achieve this by editing kube-proxy config in current cluster:
-
-```shell
-# see what changes would be made, returns nonzero returncode if different
-kubectl get configmap kube-proxy -n kube-system -o yaml | \
-sed -e "s/strictARP: false/strictARP: true/" | \
-kubectl diff -f - -n kube-system
-
-# actually apply the changes, returns nonzero returncode on errors only
-kubectl get configmap kube-proxy -n kube-system -o yaml | \
-sed -e "s/strictARP: false/strictARP: true/" | \
-kubectl apply -f - -n kube-system
-```
-
-Installation by manifest
-
-```shell
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
-```
-
-In order to assign an IP to the services, MetalLB must be instructed to do so via the `IPAddressPool` CR.
-
-All the IPs allocated via `IPAddressPools` contribute to the pool of IPs that MetalLB uses to assign IPs to services.
-
-```yaml
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: first-pool
-  namespace: metallb-system
-spec:
-  addresses:
-  - <your_ipAddresspool>  # Example: 192.168.17.1-192.168.17.250
-```
 
 ### Installing Knative Serving using YAML files
 
@@ -125,16 +83,6 @@ controller-788796f49d-4x6pm               1/1     Running   0          97s
 webhook-859796bc7-8n5g2                   1/1     Running   0          96s
 ```
 
-#### 4. Configure DNS
-
-You can configure DNS to prevent the need to run curl commands with a host header.
-
-Knative provides a Kubernetes Job called default-domain that configures Knative Serving to use sslip.io as the default DNS suffix.
-
-```shell
-kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1.18.1/serving-default-domain.yaml
-```
-
 ### Advance configuration
 
 #### Kourier Gateway
@@ -170,6 +118,20 @@ kubectl patch configmap config-features \
   --type merge \
   -p '{"data":{"kubernetes.podspec-fieldref":"enabled"}}' 
 
+```
+
+#### Systemd-resolved
+
+It is recommended to configure `/etc/systemd/resolved.conf` to get access to pods without a `curl_pod`. Look at the field `Domains` and adjust it like below
+
+```bash
+Domains=default.svc.cluster.local svc.cluster.local cluster.local
+```
+
+Then you can apply changes
+
+```bash
+systemctl restart systemd-resolved
 ```
 
 #### Check your configuration
@@ -247,31 +209,147 @@ sudo mv prometheus-3.5.0.linux-amd64/prometheus /usr/local/bin/
 sudo mv node_exporter-1.9.1.linux-amd64/node_exporter /usr/local/bin
 ```
 
+### Setting up Prometheus
+
 The Prometheus configuration is written in the YAML file, its default configuration is in the folder `prometheus-3.5.0.linux-amd64` with the name `prometheus.yml` we unzipped it above, let's take a look at it.
 
 ```shell
 cat prometheus-3.5.0.linux-amd64/prometheus.yml
 ```
 
-### Running Prometheus
+Modify `prometheus.yml` in master-node that can collect metrics from worker-nodes that host node_exporters. Here is my example config. 
 
-We will now run Prometheus, but before that, we should move the configuration file to a more appropriate folder.
+```yml
+# my global config
+global:
+  scrape_interval: 2s # Set the scrape interval to every 2 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: "prometheus"
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+      - targets: ["localhost:9090"]
+       # The label name is added as a label `label_name=<label_value>` to any timeseries scraped from this config.
+        labels:
+          app: "prometheus"
+  - job_name: "node_exporter"
+    static_configs:
+      - targets: ["192.168.17.130:9100", "192.168.17.131:9100"]
+```
+
+For more security, we should create user and group to manage `Prometheus`
+
+```bash
+sudo useradd -rs /bin/false prometheus
+
+sudo chown prometheus:prometheus /usr/local/bin/prometheus
+```
+
+We should move the configuration file to a more appropriate folder.
 
 ```shell
 sudo mkdir -p /etc/prometheus
 sudo mv prometheus-3.5.0.linux-amd64/prometheus.yml /etc/prometheus
+
+# Folder to store Prometheus data
+sudo mkdir -p data/prometheus
+
+sudo chown -R prometheus:prometheus data/prometheus /etc/prometheus/*
 ```
 
-Run Prometheus Exporter
+Now, we will create service to run `Prometheus`
 
-```shell
-node_exporter
+```bash
+cd /lib/systemd/system
+sudo nano prometheus.service
 ```
 
-Now we can run the `Prometheus` Server
+Edit contents in `prometheus.service` like this 
 
-```shell
-prometheus --config.file "/etc/prometheus/prometheus.yml"
+```
+[Unit]
+Description=Prometheus
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecStart=/usr/local/bin/prometheus \
+ --config.file=/etc/prometheus/prometheus.yml \
+ --storage.tsdb.path=/data/prometheus \
+ --web.console.templates=/etc/prometheus/consoles \
+ --web.console.libraries=/etc/prometheus/console_libraries \
+ --web.listen-address=0.0.0.0:9090 \
+ --web.enable-admin-api
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Setting up node exporter
+
+First, you should create an user for `node_exporter`
+
+```bash
+sudo useradd -rs /bin/false node_exporter
+sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+```
+
+Then, create a service for `node_exporter`
+
+```bash
+cd /lib/systemd/system
+sudo nano node_exporter.service
+```
+
+Copy this content to `node_exporter`
+
+```
+[Unit]
+Description=Node Exporter
+After=network-online.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Run the service
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start node_exporter
+
+sudo systemctl status node_exporter
 ```
 
 ## Measurement
