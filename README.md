@@ -158,199 +158,67 @@ In this work, we use [traffic-control](https://github.com/kenphunggg/traffic-con
 
 ## Setting up Prometheus for measuring
 
-### Install Prometheus
+### 1. Install prometheus
 
-Precompiled binaries for released versions are available in the [download](https://prometheus.io/download/) section on [Prometheus](https://prometheus.io/). Using the latest production release binary is the recommended way of installing Prometheus. See the [Installing](https://prometheus.io/docs/prometheus/latest/installation/) chapter in the documentation for all the details.
-
-Download the latest release of Prometheus for your platform
-
-```shell
-# Download Prometheus monitoring system and time series database.
-wget https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
-
-# Download Prometheus Alertmanager
-wget https://github.com/prometheus/alertmanager/releases/download/v0.28.1/alertmanager-0.28.1.linux-amd64.tar.gz
-
-# Download Blackbox prober exporter
-wget https://github.com/prometheus/blackbox_exporter/releases/download/v0.27.0/blackbox_exporter-0.27.0.linux-amd64.tar.gz
-
-# Download Exporter for Consul metrics
-wget https://github.com/prometheus/consul_exporter/releases/download/v0.13.0/consul_exporter-0.13.0.linux-amd64.tar.gz
-
-# Download graphite_exporter
-wget https://github.com/prometheus/graphite_exporter/releases/download/v0.16.0/graphite_exporter-0.16.0.linux-amd64.tar.gz
-
-# Download memcached_exporter
-wget https://github.com/prometheus/memcached_exporter/releases/download/v0.15.3/memcached_exporter-0.15.3.linux-amd64.tar.gz
-
-# Download mysqld_exporter
-wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.17.2/mysqld_exporter-0.17.2.linux-amd64.tar.gz
-
-# Download node_exporter
-wget https://github.com/prometheus/node_exporter/releases/download/v1.9.1/node_exporter-1.9.1.linux-amd64.tar.gz
-
-# Download promlens
-wget https://github.com/prometheus/promlens/releases/download/v0.3.0/promlens-0.3.0.linux-amd64.tar.gz
-
-# Download push gateway
-wget https://github.com/prometheus/pushgateway/releases/download/v1.11.1/pushgateway-1.11.1.linux-amd64.tar.gz
-
-# statsd exporter
-wget https://github.com/prometheus/statsd_exporter/releases/download/v0.28.0/statsd_exporter-0.28.0.linux-amd64.tar.gz
-```
-
-Then extract it 
-
-```shell
-tar xvfz prometheus-*.tar.gz
-tar xvf node_exporter-1.9.1.linux-amd64.tar.gz
-sudo mv prometheus-3.5.0.linux-amd64/promtool /usr/local/bin/
-sudo mv prometheus-3.5.0.linux-amd64/prometheus /usr/local/bin/
-sudo mv node_exporter-1.9.1.linux-amd64/node_exporter /usr/local/bin
-```
-
-### Setting up Prometheus
-
-The Prometheus configuration is written in the YAML file, its default configuration is in the folder `prometheus-3.5.0.linux-amd64` with the name `prometheus.yml` we unzipped it above, let's take a look at it.
-
-```shell
-cat prometheus-3.5.0.linux-amd64/prometheus.yml
-```
-
-Modify `prometheus.yml` in master-node that can collect metrics from worker-nodes that host node_exporters. Here is my example config. 
-
-```yml
-# my global config
-global:
-  scrape_interval: 2s # Set the scrape interval to every 2 seconds. Default is every 1 minute.
-  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
-  # scrape_timeout is set to the global default (10s).
-
-# Alertmanager configuration
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          # - alertmanager:9093
-
-# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
-rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
-
-# A scrape configuration containing exactly one endpoint to scrape:
-# Here it's Prometheus itself.
-scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-  - job_name: "prometheus"
-
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-
-    static_configs:
-      - targets: ["localhost:9090"]
-       # The label name is added as a label `label_name=<label_value>` to any timeseries scraped from this config.
-        labels:
-          app: "prometheus"
-  - job_name: "node_exporter"
-    static_configs:
-      - targets: ["192.168.17.130:9100", "192.168.17.131:9100"]
-```
-
-For more security, we should create user and group to manage `Prometheus`
+First, you need to install `helm`
 
 ```bash
-sudo useradd -rs /bin/false prometheus
-
-sudo chown prometheus:prometheus /usr/local/bin/prometheus
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
 ```
 
-We should move the configuration file to a more appropriate folder.
-
-```shell
-sudo mkdir -p /etc/prometheus
-sudo mv prometheus-3.5.0.linux-amd64/prometheus.yml /etc/prometheus
-
-# Folder to store Prometheus data
-sudo mkdir -p data/prometheus
-
-sudo chown -R prometheus:prometheus data/prometheus /etc/prometheus/*
-```
-
-Now, we will create service to run `Prometheus`
+Now you can install `Prometheus` using `helm`
 
 ```bash
-cd /lib/systemd/system
-sudo nano prometheus.service
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+helm repo add stable https://charts.helm.sh/stable
+
+helm repo update
 ```
 
-Edit contents in `prometheus.service` like this 
+Search for `kube-prometheus-stack `
+```bash
+helm search repo prometheus |egrep "stack|CHART"
 
-```
-[Unit]
-Description=Prometheus
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=simple
-User=prometheus
-Group=prometheus
-ExecStart=/usr/local/bin/prometheus \
- --config.file=/etc/prometheus/prometheus.yml \
- --storage.tsdb.path=/data/prometheus \
- --web.console.templates=/etc/prometheus/consoles \
- --web.console.libraries=/etc/prometheus/console_libraries \
- --web.listen-address=0.0.0.0:9090 \
- --web.enable-admin-api
-
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
+NAME                                              	CHART VERSION	APP VERSION	DESCRIPTION                                       
+prometheus-community/kube-prometheus-stack        	78.2.1       	v0.86.0    	kube-prometheus-stack collects Kubernetes manif...
+prometheus-community/prometheus-stackdriver-exp...	4.12.1       	v0.18.0    	Stackdriver exporter for Prometheus               
+stable/stackdriver-exporter                       	1.3.2        	0.6.0      	DEPRECATED - Stackdriver exporter for Prometheus  
 ```
 
-#### Setting up node exporter
+Pull version you have found above
+```bash
+helm pull prometheus-community/kube-prometheus-stack --version 78.2.1
+tar -xzf kube-prometheus-stack-78.2.1.tgz
+cp kube-prometheus-stack/values.yaml values-prometheus.yaml
+```
 
-First, you should create an user for `node_exporter`
+You can change default password when logging in
 
 ```bash
-sudo useradd -rs /bin/false node_exporter
-sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+adminPassword: pass
 ```
-
-Then, create a service for `node_exporter`
+Install `Prometheus` components
 
 ```bash
-cd /lib/systemd/system
-sudo nano node_exporter.service
+kubectl create ns monitoring
+helm -n monitoring install prometheus-grafana-stack -f values-prometheus-clusterIP.yaml kube-prometheus-stack
+kubectl -n monitoring get all
 ```
 
-Copy this content to `node_exporter`
-
-```
-[Unit]
-Description=Node Exporter
-After=network-online.target
-
-[Service]
-User=node_exporter
-Group=node_exporter
-Type=simple
-ExecStart=/usr/local/bin/node_exporter
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Run the service
-
+Config network for access in localhost
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl start node_exporter
+kubectl port-forward -n monitoring svc/prometheus-grafana-stack-k-prometheus 9090:9090
 
-sudo systemctl status node_exporter
+kubectl get configmap kube-proxy -n kube-system -o yaml | \
+  sed 's/metricsBindAddress: 127.0.0.1:10249/metricsBindAddress: 0.0.0.0:10249/' | \
+  kubectl apply -f -
+
+kubectl rollout restart daemonset -n kube-system kube-proxy
 ```
+
 
 ## Measurement
 
