@@ -1,3 +1,5 @@
-kube-prometheus-stack-78.2.1.tgz
+kube-prometheus-stack-*.tgz
+
+get_helm.sh
 
 kube-prometheus-stack/
