@@ -18,6 +18,7 @@ Documentation for Serverless Setup and Measurement
 - [Setting up Prometheus for measuring](#setting-up-prometheus-for-measuring)
   - [Install Prometheus](#install-prometheus)
   - [Running Prometheus](#running-prometheus)
+- [More configurations](#more-configurations)
 
 ## Testbed design
 
@@ -116,7 +117,7 @@ kubectl patch configmap config-features \
 kubectl patch configmap config-features \
   -n knative-serving \
   --type merge \
-  -p '{"data":{"kubernetes.podspec-fieldref":"enabled"}}' 
+  -p '{"data":{"kubernetes.podspec-fieldref":"enabled"}}'
 
 ```
 
@@ -182,10 +183,10 @@ Search for `kube-prometheus-stack `
 ```bash
 helm search repo prometheus |egrep "stack|CHART"
 
-NAME                                              	CHART VERSION	APP VERSION	DESCRIPTION                                       
+NAME                                              	CHART VERSION	APP VERSION	DESCRIPTION
 prometheus-community/kube-prometheus-stack        	78.2.1       	v0.86.0    	kube-prometheus-stack collects Kubernetes manif...
-prometheus-community/prometheus-stackdriver-exp...	4.12.1       	v0.18.0    	Stackdriver exporter for Prometheus               
-stable/stackdriver-exporter                       	1.3.2        	0.6.0      	DEPRECATED - Stackdriver exporter for Prometheus  
+prometheus-community/prometheus-stackdriver-exp...	4.12.1       	v0.18.0    	Stackdriver exporter for Prometheus
+stable/stackdriver-exporter                       	1.3.2        	0.6.0      	DEPRECATED - Stackdriver exporter for Prometheus
 ```
 
 Pull version you have found above
@@ -223,6 +224,10 @@ kubectl rollout restart daemonset -n kube-system kube-proxy
 ## Measurement
 
 Follow our our guild for measuring [here](https://github.com/kenphunggg/serverless-measurement.git)
+
+## More configurations
+
+1. Setup Metric Server for `Kubernetes`'s HPA. [See more](./metric_sv.md)
 
 
 

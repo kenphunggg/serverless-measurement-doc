@@ -1,5 +1,6 @@
 kube-prometheus-stack-*.tgz
+kube-prometheus-stack/
+
+metric-server/
 
 get_helm.sh
-
-kube-prometheus-stack/
